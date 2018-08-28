@@ -1,0 +1,1 @@
+PATH_TO_DATASET = "/Users/gorjanradevski/PycharmProjects/face_verification_tensorflow/data/lfw/"
