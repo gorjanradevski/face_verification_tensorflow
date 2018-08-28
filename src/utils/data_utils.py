@@ -5,7 +5,7 @@ import cv2
 
 
 def process_raw_line(line: str) -> Tuple[str, str]:
-    """
+    """Maps from line -> image paths
 
     Args:
         line: A raw line from lbw datasets
