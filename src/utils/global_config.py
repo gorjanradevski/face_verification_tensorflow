@@ -2,3 +2,5 @@ PATH_TO_DATASET = "/Users/gorjanradevski/PycharmProjects/face_verification_tenso
 BATCH_SIZE = 32
 IMG_WIDTH = 250
 IMG_HEIGHT = 250
+LR = 0.001
+TRAIN_DROP = 0.5

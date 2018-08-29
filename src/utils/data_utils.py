@@ -2,9 +2,10 @@ from typing import Tuple, List
 from utils.global_config import BATCH_SIZE, IMG_HEIGHT, IMG_WIDTH, PATH_TO_DATASET
 import numpy as np
 import cv2
+import os
 
 
-def process_raw_line(line: str) -> Tuple[str, str]:
+def process_raw_line_siamese(line: str) -> Tuple[str, str]:
     """Maps from line -> image paths
 
     Args:
@@ -33,7 +34,7 @@ def process_raw_line(line: str) -> Tuple[str, str]:
     return image_path1, image_path2
 
 
-def load_all_image_paths(pairs_file_path: str) -> List[Tuple[str, str]]:
+def load_all_image_paths_siamese(pairs_file_path: str) -> List[Tuple[str, str]]:
     """Loads all image paths to ram
 
     Args:
@@ -47,13 +48,13 @@ def load_all_image_paths(pairs_file_path: str) -> List[Tuple[str, str]]:
     with open(pairs_file_path) as file:
         next(file)
         for raw_line in file:
-            img_paths_tuple = process_raw_line(raw_line)
+            img_paths_tuple = process_raw_line_siamese(raw_line)
             all_image_paths.append(img_paths_tuple)
 
     return all_image_paths
 
 
-def load_batch_of_images(
+def load_batch_of_images_siamese(
     image_paths: List[Tuple[str, str]]
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Given a list of image paths it loads a batch
@@ -72,3 +73,38 @@ def load_batch_of_images(
         batch_images2[index] = cv2.imread(paths_tuple[1])
 
     return batch_images1, batch_images2
+
+
+def load_all_images_convnet(data_dir: str) -> List[str]:
+    """Loads all image paths for the convnet training
+
+    Args:
+        data_dir: Path where the data dir is
+
+    Returns:
+        image_paths: All image paths
+
+    """
+    paths = []
+    for root, dirs, files in os.walk(data_dir):
+        for f in files:
+            paths.append(os.path.join(root, f))
+
+    return paths
+
+
+def load_batch_of_images_convnet(image_paths: List[str]) -> np.ndarray:
+    """Given a list of image paths it loads a batch
+
+    Args:
+        image_paths: A batch size list of image paths
+
+    Returns:
+        batch_images: A batch of images
+
+    """
+    batch_images = np.zeros((BATCH_SIZE, IMG_WIDTH, IMG_HEIGHT, 3))
+    for index, path in enumerate(image_paths):
+        batch_images[index] = cv2.imread(path)
+
+    return batch_images

@@ -1,79 +1,99 @@
 import tensorflow as tf
+from utils.global_config import IMG_WIDTH, IMG_HEIGHT, TRAIN_DROP, LR
 
-def build_graph():
 
-    with tf.name_scope('Placeholders'):
+class ConvNet:
+    def __init__(self):
+        self._create_placeholders()
+        conv1 = self._conv2dmaxpool(self.input_image, 3, 32)
+        conv2 = self._conv2dmaxpool(conv1, 32, 64)
+        fully1 = self._fullyconnected(conv2, 32)
+        drop = self._dropout(fully1)
+        logits = self._create_logits(drop)
+        self._create_loss(logits, self.label)
+        self._create_optimizer()
+        self._inference_module(logits)
 
-        X = tf.placeholder(shape=[None, 150, 150, 3], dtype=tf.float32, name='inputs')
-        y = tf.placeholder(shape=[None, ], dtype=tf.int64, name='labels')
-        keep_prob = tf.placeholder(tf.float32, name='dropout_prob')
+    def _create_placeholders(self):
+        self.input_image = tf.placeholder(
+            shape=[None, IMG_WIDTH, IMG_HEIGHT, 3], dtype=tf.float32, name="inputs"
+        )
+        self.label = tf.placeholder(shape=[None], dtype=tf.int64, name="labels")
+        self.dropout_prob = tf.placeholder(tf.float32, name="dropout_prob")
 
-    with tf.name_scope('Convolutional_Pooling_1'):
+    def _conv2dmaxpool(self, X, in_channels, out_channels):
+        W = tf.Variable(
+            tf.random_uniform([5, 5, in_channels, out_channels], -1.0, 1.0),
+            dtype=tf.float32,
+            name="filter",
+        )
+        b = tf.Variable(
+            tf.random_uniform([out_channels], -1.0, 1.0), dtype=tf.float32, name="bias"
+        )
 
-        W1 = tf.Variable(tf.random_uniform([5, 5, 3, 32], -1.0, 1.0), dtype=tf.float32, name='filter1')
-        b1 = tf.Variable(tf.random_uniform([32], -1.0, 1.0), dtype=tf.float32, name='bias1')
+        conv_op = tf.nn.conv2d(
+            X,
+            W,
+            strides=[1, 1, 1, 1],
+            padding="SAME",
+            use_cudnn_on_gpu=False,
+            data_format="NHWC",
+            dilations=[1, 1, 1, 1],
+            name="conv",
+        )
 
-        conv_op1 = tf.nn.conv2d(X, W1, strides=[1, 1, 1, 1], padding='SAME',
-                    use_cudnn_on_gpu=False, data_format='NHWC', dilations=[1, 1, 1, 1], name='conv1')
+        conv_layer = tf.nn.relu(conv_op + b, name="relu")
 
-        conv_layer1 = tf.nn.relu(conv_op1 + b1, name='relu1')
+        return tf.nn.max_pool(
+            conv_layer,
+            ksize=[1, 2, 2, 1],
+            strides=[1, 2, 2, 1],
+            padding="SAME",
+            data_format="NHWC",
+            name="maxpool",
+        )
 
-        max_pool1 = tf.nn.max_pool(conv_layer1, ksize=[1, 2, 2, 1],
-                                strides=[1, 2, 2, 1], padding='SAME', data_format='NHWC', name='maxpool1')
-
-    with tf.name_scope('Convolutional_Pooling_2'):
-
-        W2 = tf.Variable(tf.random_uniform([5, 5, 32, 64], -1.0, 1.0), dtype=tf.float32, name='filter2')
-        b2 = tf.Variable(tf.random_uniform([64], -1.0, 1.0), dtype=tf.float32, name='bias2')
-
-        conv_op2 = tf.nn.conv2d(max_pool1, W2, strides=[1, 1, 1, 1], padding='SAME',
-                    use_cudnn_on_gpu=False, data_format='NHWC', dilations=[1, 1, 1, 1], name='conv2')
-
-        conv_layer2 = tf.nn.relu(conv_op2 + b2, name='relu2')
-
-        max_pool2 = tf.nn.max_pool(conv_layer2, ksize=[1, 2, 2, 1],
-                                   strides=[1, 2, 2, 1], padding='SAME', data_format='NHWC', name='maxpool2')
-
-    with tf.name_scope('Fully_connected_layer_1'):
-
-        flatten = tf.reshape(max_pool2, [-1, max_pool2.shape[1] * max_pool2.shape[2] * max_pool2.shape[3]])
+    def _fullyconnected(self, input, num_neurons):
+        flatten = tf.reshape(
+            input, [-1, input.shape[1] * input.shape[2] * input.shape[3]]
+        )
         input_size = int(flatten.get_shape()[1])
 
-        W3 = tf.Variable(tf.random_uniform([input_size, 128], -1.0, 1.0), dtype=tf.float32, name='Weights1')
-        b3 = tf.Variable(tf.random_uniform([128], -1.0, 1.0), dtype=tf.float32, name='Bias1')
+        W = tf.Variable(
+            tf.random_uniform([input_size, num_neurons], -1.0, 1.0),
+            dtype=tf.float32,
+            name="Weights",
+        )
+        b = tf.Variable(
+            tf.random_uniform([num_neurons], -1.0, 1.0), dtype=tf.float32, name="Bias"
+        )
+        return tf.nn.relu(tf.matmul(flatten, W) + b, name="relu")
 
-        full_1 = tf.nn.relu(tf.matmul(flatten, W3) + b3, name='Fully_connected_1')
+    def _dropout(self, input):
+        drop_out = tf.nn.dropout(input, keep_prob=TRAIN_DROP)
 
-    with tf.name_scope('Dropout_layer_1'):
+        return drop_out
 
-        drop1 = tf.nn.dropout(full_1, keep_prob=keep_prob, name='Dropout1')
+    def _create_logits(self, input):
+        input_size = int(input.get_shape()[1])
 
-    with tf.name_scope('Logits_layer'):
+        W = tf.Variable(tf.random_uniform([input_size, 2], -1.0, 1.0), dtype=tf.float32)
+        b = tf.Variable(tf.random_uniform([2], -1.0, 1.0), dtype=tf.float32)
 
-        input_size = int(drop1.get_shape()[1])
+        logits = tf.matmul(input, W) + b
 
-        W5 = tf.Variable(tf.random_uniform([input_size, 2], -1.0, 1.0), dtype=tf.float32, name='Softmax_weights')
-        b5 = tf.Variable(tf.random_uniform([2], -1.0, 1.0), dtype=tf.float32, name='Softmax_bias')
+        return logits
 
-        logits = (tf.matmul(drop1, W5) + b5)
+    def _create_loss(self, logits, labels):
+        one_hot_labels = tf.one_hot(labels, depth=2)
+        cross_entropy = tf.nn.softmax_cross_entropy_with_logits_v2(
+            labels=one_hot_labels, logits=logits
+        )
+        self.loss = tf.reduce_mean(cross_entropy)
 
-    with tf.name_scope('One_hot_labels'):
-        one_hot_labels = tf.one_hot(y, depth=2)
+    def _create_optimizer(self):
+        optimizer = tf.train.AdamOptimizer(LR)
+        self.train_step = optimizer.minimize(self.loss)
 
-    with tf.name_scope('Convert_to_probs'):
-        softmax = tf.nn.softmax(logits, 1, name='Softmax')
-
-    with tf.name_scope('Loss'):
-        cross_entropy = tf.nn.softmax_cross_entropy_with_logits_v2(labels=one_hot_labels, logits=logits)
-        loss = tf.reduce_mean(cross_entropy)
-
-    with tf.name_scope('Train'):
-        optimizer = tf.train.AdamOptimizer(0.001)
-        train_step = optimizer.minimize(loss)
-
-    with tf.name_scope('Accuracy'):
-        correct_prediction = tf.equal(tf.argmax(softmax, 1), tf.argmax(one_hot_labels, 1))
-        compute_accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-
-
-    return X, y, keep_prob, loss, train_step, compute_accuracy
+    def _inference_module(self, logits):
+        return tf.nn.softmax(logits, 1, name="Softmax")
