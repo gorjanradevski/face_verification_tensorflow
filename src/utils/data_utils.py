@@ -1,8 +1,17 @@
 from typing import Tuple, List
-from utils.global_config import BATCH_SIZE, IMG_HEIGHT, IMG_WIDTH, PATH_TO_DATASET
+from utils.global_config import (
+    BATCH_SIZE,
+    IMG_HEIGHT,
+    IMG_WIDTH,
+    PATH_TO_DATASET,
+    LABEL,
+    IMG_EXTENSIONS
+)
 import numpy as np
 import cv2
 import os
+import random
+
 
 
 def process_raw_line_siamese(line: str) -> Tuple[str, str]:
@@ -75,7 +84,7 @@ def load_batch_of_images_siamese(
     return batch_images1, batch_images2
 
 
-def load_all_images_convnet(data_dir: str) -> List[str]:
+def load_all_image_paths_convnet(data_dir: str) -> List[str]:
     """Loads all image paths for the convnet training
 
     Args:
@@ -85,15 +94,18 @@ def load_all_images_convnet(data_dir: str) -> List[str]:
         image_paths: All image paths
 
     """
-    paths = []
-    for root, dirs, files in os.walk(data_dir):
-        for f in files:
-            paths.append(os.path.join(root, f))
+    img_paths = []
+    for root, directories, filenames in os.walk(data_dir):
+        for filename in filenames:
+            extension = os.path.splitext(filename)[1]
+            if extension in IMG_EXTENSIONS:
+                file_path = os.path.join(root, filename)
+                img_paths.append(file_path)
 
-    return paths
+    return img_paths
 
 
-def load_batch_of_images_convnet(image_paths: List[str]) -> np.ndarray:
+def load_batch_of_data_convnet(image_paths: List[str]) -> Tuple[np.ndarray, np.ndarray]:
     """Given a list of image paths it loads a batch
 
     Args:
@@ -103,8 +115,12 @@ def load_batch_of_images_convnet(image_paths: List[str]) -> np.ndarray:
         batch_images: A batch of images
 
     """
-    batch_images = np.zeros((BATCH_SIZE, IMG_WIDTH, IMG_HEIGHT, 3))
+    size_of_batch = len(image_paths)
+    batch_images = np.zeros((size_of_batch, IMG_WIDTH, IMG_HEIGHT, 3))
+    batch_labels = np.zeros((size_of_batch))
     for index, path in enumerate(image_paths):
-        batch_images[index] = cv2.imread(path)
+        batch_images[index] = cv2.resize(cv2.imread(path), (150, 150))
+        if LABEL in path:
+            batch_labels[index] = 1
 
-    return batch_images
+    return batch_images, batch_labels

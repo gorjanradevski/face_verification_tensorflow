@@ -1,24 +1,27 @@
 import tensorflow as tf
-from utils.global_config import IMG_WIDTH, IMG_HEIGHT, TRAIN_DROP, LR
+import os
+from utils.global_config import IMG_WIDTH, IMG_HEIGHT, LR
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 
 class ConvNet:
     def __init__(self):
         self._create_placeholders()
-        conv1 = self._conv2dmaxpool(self.input_image, 3, 32)
+        conv1 = self._conv2dmaxpool(self.input_images, 3, 32)
         conv2 = self._conv2dmaxpool(conv1, 32, 64)
         fully1 = self._fullyconnected(conv2, 32)
-        drop = self._dropout(fully1)
+        drop = self._dropout(fully1, self.dropout_prob)
         logits = self._create_logits(drop)
-        self._create_loss(logits, self.label)
+        self._create_loss(logits, self.labels)
         self._create_optimizer()
-        self._inference_module(logits)
+        self._inference(logits)
 
     def _create_placeholders(self):
-        self.input_image = tf.placeholder(
+        self.input_images = tf.placeholder(
             shape=[None, IMG_WIDTH, IMG_HEIGHT, 3], dtype=tf.float32, name="inputs"
         )
-        self.label = tf.placeholder(shape=[None], dtype=tf.int64, name="labels")
+        self.labels = tf.placeholder(shape=[None], dtype=tf.int64, name="labels")
         self.dropout_prob = tf.placeholder(tf.float32, name="dropout_prob")
 
     def _conv2dmaxpool(self, X, in_channels, out_channels):
@@ -62,15 +65,15 @@ class ConvNet:
         W = tf.Variable(
             tf.random_uniform([input_size, num_neurons], -1.0, 1.0),
             dtype=tf.float32,
-            name="Weights",
+            name="weights",
         )
         b = tf.Variable(
-            tf.random_uniform([num_neurons], -1.0, 1.0), dtype=tf.float32, name="Bias"
+            tf.random_uniform([num_neurons], -1.0, 1.0), dtype=tf.float32, name="bias"
         )
         return tf.nn.relu(tf.matmul(flatten, W) + b, name="relu")
 
-    def _dropout(self, input):
-        drop_out = tf.nn.dropout(input, keep_prob=TRAIN_DROP)
+    def _dropout(self, input, drop_prob):
+        drop_out = tf.nn.dropout(input, keep_prob=drop_prob)
 
         return drop_out
 
@@ -89,11 +92,11 @@ class ConvNet:
         cross_entropy = tf.nn.softmax_cross_entropy_with_logits_v2(
             labels=one_hot_labels, logits=logits
         )
-        self.loss = tf.reduce_mean(cross_entropy)
+        self.loss_fun = tf.reduce_mean(cross_entropy)
 
     def _create_optimizer(self):
         optimizer = tf.train.AdamOptimizer(LR)
-        self.train_step = optimizer.minimize(self.loss)
+        self.train_step = optimizer.minimize(self.loss_fun)
 
-    def _inference_module(self, logits):
-        return tf.nn.softmax(logits, 1, name="Softmax")
+    def _inference(self, logits):
+        self.predict = tf.nn.softmax(logits, 1, name="softmax")
