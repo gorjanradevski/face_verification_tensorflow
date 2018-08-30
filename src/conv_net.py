@@ -73,9 +73,7 @@ class ConvNet:
         return tf.nn.relu(tf.matmul(flatten, W) + b, name="relu")
 
     def _dropout(self, input, drop_prob):
-        drop_out = tf.nn.dropout(input, keep_prob=drop_prob)
-
-        return drop_out
+        return tf.nn.dropout(input, keep_prob=drop_prob)
 
     def _create_logits(self, input):
         input_size = int(input.get_shape()[1])
