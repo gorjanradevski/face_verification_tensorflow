@@ -8,6 +8,7 @@ import tensorflow as tf
 import logging
 import argparse
 import random
+import sys
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 logging.basicConfig(level=logging.INFO)
@@ -25,16 +26,16 @@ def train_model(train_data_dir: str, val_data_dir: str):
     """
     all_train_image_paths = load_all_image_paths_convnet(train_data_dir)
     all_val_image_paths = load_all_image_paths_convnet(val_data_dir)
-    full_epoch_val = trange(0, len(all_val_image_paths), BATCH_SIZE)
     log.info("All image paths loaded...")
     model = ConvNet()
     log.info("Model built...")
+    BEST_VAL_LOSS = sys.maxsize
 
-    writer = tf.summary.FileWriter("./graphs", tf.get_default_graph())
     saver = tf.train.Saver()
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         for e in range(EPOCHS):
+            validation_loss_epoch = 0.0
 
             random.shuffle(all_train_image_paths)
             full_epoch_train = trange(0, len(all_train_image_paths), BATCH_SIZE)
@@ -55,7 +56,7 @@ def train_model(train_data_dir: str, val_data_dir: str):
                     f"Current train step loss: %g" % train_loss
                 )
 
-            for step in full_epoch_val:
+            for step in range(0, len(all_val_image_paths), BATCH_SIZE):
                 val_image_batch, val_label_batch = load_batch_of_data_convnet(
                     all_train_image_paths[step : step + BATCH_SIZE]
                 )
@@ -65,9 +66,13 @@ def train_model(train_data_dir: str, val_data_dir: str):
                     model.dropout_prob: 1.0,
                 }
                 val_loss = sess.run(model.loss_fun, feed_dict_val)
-                full_epoch_val.set_description(
-                    f"Current train step loss: %g" % val_loss
-                )
+                validation_loss_epoch += val_loss
+
+            print(f"The validation loss for epoch {e} is: {validation_loss_epoch}")
+            if validation_loss_epoch < BEST_VAL_LOSS:
+                print("Found new best! Saving model")
+                saver.save(sess, f"logs/conv_net_{e}")
+                BEST_VAL_LOSS = validation_loss_epoch
 
 
 if __name__ == "__main__":
