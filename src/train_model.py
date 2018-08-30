@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger()
 
 
-def train_model(train_data_dir: str, val_data_dir: str):
+def train_model(train_data_dir: str, val_data_dir: str, save_model_dir: str):
     """
 
     Args:
@@ -68,10 +68,10 @@ def train_model(train_data_dir: str, val_data_dir: str):
                 val_loss = sess.run(model.loss_fun, feed_dict_val)
                 validation_loss_epoch += val_loss
 
-            print(f"The validation loss for epoch {e} is: {validation_loss_epoch}")
+            print(f"The validation loss for epoch {e+1} is: {validation_loss_epoch}")
             if validation_loss_epoch < BEST_VAL_LOSS:
                 print("Found new best! Saving model")
-                saver.save(sess, f"logs/conv_net_{e}")
+                saver.save(sess, f"{save_model_dir}/conv_net")
                 BEST_VAL_LOSS = validation_loss_epoch
 
 
@@ -80,19 +80,24 @@ if __name__ == "__main__":
         description="The script takes a directory where the train data is"
         "as well where the validation data is"
     )
-
     parser.add_argument(
         "--train_data_dir",
         type=str,
         help="Location where the data is",
-        default="../data/train_data",
+        default="../data/train_data_conv",
     )
     parser.add_argument(
         "--val_data_dir",
         type=str,
         help="Location where the data is",
-        default="../data/val_data",
+        default="../data/val_data_conv",
+    )
+    parser.add_argument(
+        "--save_model_dir",
+        type=str,
+        help="Location where the model should be saved",
+        default="../log",
     )
 
     args = parser.parse_args()
-    train_model(args.train_data_dir, args.val_data_dir)
+    train_model(args.train_data_dir, args.val_data_dir, args.save_model_dir)

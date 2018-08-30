@@ -10,8 +10,6 @@ from utils.global_config import (
 import numpy as np
 import cv2
 import os
-import random
-
 
 
 def process_raw_line_siamese(line: str) -> Tuple[str, str]:
