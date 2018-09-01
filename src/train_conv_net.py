@@ -96,7 +96,7 @@ if __name__ == "__main__":
         "--save_model_dir",
         type=str,
         help="Location where the model should be saved",
-        default="../log",
+        default="../logs",
     )
 
     args = parser.parse_args()
