@@ -2,49 +2,62 @@ import cv2
 import tensorflow as tf
 import os
 import numpy as np
+import argparse
 
 from utils.global_config import IMG_HEIGHT, IMG_WIDTH
+from siamese_net import SiameseNet
 
 
-os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
-cap = cv2.VideoCapture(0)
-count = 0
 
-with tf.Session() as sess:
-    # Restore variables from disk.
-    loader = tf.train.import_meta_graph('logs/siamese_net.meta')
-    loader.restore(sess, 'logs/siamese_net')
+def perform_inference_on_camera_input(args):
 
-    true = tf.get_default_graph().get_tensor_by_name("inputs1:0")
-    test = tf.get_default_graph().get_tensor_by_name("inputs2:0")
-    softmax = tf.get_default_graph().get_tensor_by_name("Softmax:0")
-    keep_prob = tf.get_default_graph().get_tensor_by_name("Placeholders/dropout_prob:0")
-
-    while(True):
-        # Capture frame-by-frame
-        ret, frame = cap.read()
-
-        if count % 30 == 0:
-            resize_img = np.array(cv2.resize(frame, (IMG_HEIGHT, IMG_WIDTH)))
-            predictions = sess.run(softmax, {X: image, keep_prob: 1.0})
-            cv2.imshow("Face image", resize_img)
+    cap = cv2.VideoCapture(0)
+    cap.set(cv2.CAP_PROP_FPS, 1)
+    anchor_image = cv2.imread(args.anchor_image_path)
+    model = SiameseNet()
+    with tf.Session() as sess:
+        # Restore variables from disk.
+        model.restore_from_checkpoint(sess, args.checkpoint_path)
+        while True:
+            # Capture frame-by-frame
+            ret, frame = cap.read()
+            check_image = np.array(cv2.resize(frame, (IMG_HEIGHT, IMG_WIDTH)))
+            feed_dict_inference = {
+                model.input_images1: check_image,
+                model.input_images2: anchor_image,
+                model.is_training: False,
+            }
+            predictions = sess.run(model.inference, feed_dict_inference)
             print(predictions)
-            if predictions[0][0] == 1:
-                print('Gorjan is in the picture!!!!')
-            else:
-                print('You are not Gorjan...')
+            cv2.imshow("Face image", check_image)
 
-            count = 0
-            else:
-                print('Zero or more faces in a picture')
-                count = 0
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                break
 
-        count+=1
+    # When everything done, release the capture
+    cap.release()
+    cv2.destroyAllWindows()
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
 
-# When everything done, release the capture
-cap.release()
-cv2.destroyAllWindows()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="The script takes a path where the"
+        "the checkpoint is and the anchor image"
+    )
+    parser.add_argument(
+        "--checkpoint_path",
+        type=str,
+        help="Location the model checkpoint is",
+        default="../logs/siamese_net",
+    )
+    parser.add_argument(
+        "--anchor_image_path",
+        type=str,
+        help="Location where the validation pairs are",
+        default="../data/anchor_image.jpg",
+    )
+
+    args = parser.parse_args()
+    perform_inference_on_camera_input(args)

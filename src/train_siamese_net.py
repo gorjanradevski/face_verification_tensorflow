@@ -24,17 +24,8 @@ def train_model(pairs_train_path: str, pairs_val_path: str, save_model_dir: str)
     Returns:
 
     """
-    all_train_image_paths = load_all_image_paths_siamese(pairs_train_path)
-    pos_train_image_paths = all_train_image_paths[:200]
-    neg_train_image_paths = all_train_image_paths[-200:]
-    train_image_paths = pos_train_image_paths + neg_train_image_paths
-
-    all_val_image_paths = load_all_image_paths_siamese(pairs_val_path)
-    pos_val_image_paths = all_val_image_paths[:32]
-    neg_val_image_paths = all_val_image_paths[-32:]
-    val_image_paths = pos_val_image_paths + neg_val_image_paths
-
-
+    train_image_paths = load_all_image_paths_siamese(pairs_train_path)
+    val_image_paths = load_all_image_paths_siamese(pairs_val_path)
     log.info("All image paths loaded...")
     model = SiameseNet()
     log.info("Model built...")
@@ -86,7 +77,6 @@ def train_model(pairs_train_path: str, pairs_val_path: str, save_model_dir: str)
                 print("Found new best! Saving model...")
                 saver.save(sess, f"{save_model_dir}/siamese_net")
                 BEST_VAL_LOSS = validation_loss_epoch
-
 
 
 if __name__ == "__main__":

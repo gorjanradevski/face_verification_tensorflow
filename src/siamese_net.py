@@ -1,12 +1,18 @@
 import tensorflow as tf
 import os
-from utils.global_config import IMG_WIDTH, IMG_HEIGHT, LR, CONTRASTIVE_MARGIN
+import logging
+from utils.global_config import IMG_WIDTH, IMG_HEIGHT, LR, CONTRASTIVE_MARGIN, NUM_STABILITY
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger()
 
 
 class SiameseNet:
     def __init__(self):
+        tf.reset_default_graph()
+
+        # Creating the placeholders
         self._create_placeholders()
 
         # Building the first network
@@ -24,11 +30,11 @@ class SiameseNet:
         net1_max_pooled3 = self._maxpool2d_layer(net1_conv_layer3)
 
         net1_dense1 = self._dense_layer(
-            net1_max_pooled3, 128, name="dense1", reuse=False, activation=tf.nn.relu
+            net1_max_pooled3, 256, name="dense1", reuse=False, activation=tf.nn.relu
         )
         net1_dropped = self._create_dropout(net1_dense1, self.is_training)
         net1_logits = self._dense_layer(
-            net1_dropped, 128, name="logits", activation=tf.nn.relu, reuse=False
+            net1_dropped, 256, name="logits", activation=tf.nn.relu, reuse=False
         )
 
         # Building the second network
@@ -46,11 +52,11 @@ class SiameseNet:
         net2_max_pooled3 = self._maxpool2d_layer(net2_conv_layer3)
 
         net2_dense1 = self._dense_layer(
-            net2_max_pooled3, 128, name="dense1", reuse=True, activation=tf.nn.relu
+            net2_max_pooled3, 256, name="dense1", reuse=True, activation=tf.nn.relu
         )
         net2_dropped = self._create_dropout(net2_dense1, self.is_training)
         net2_logits = self._dense_layer(
-            net2_dropped, 128, name="logits", activation=tf.nn.relu, reuse=True
+            net2_dropped, 256, name="logits", activation=tf.nn.relu, reuse=True
         )
 
         # Preparing for the loss / flattening the output
@@ -58,7 +64,9 @@ class SiameseNet:
         net2_flatten = tf.layers.flatten(net2_logits)
         self._create_loss(net1_flatten, net2_flatten, self.labels)
         self._create_optimizer()
-        self._inference(net1_flatten, net2_flatten)
+
+        # Performing inference
+        self.inference(net1_flatten, net2_flatten)
 
     def _create_placeholders(self):
         self.input_images1 = tf.placeholder(
@@ -67,7 +75,7 @@ class SiameseNet:
         self.input_images2 = tf.placeholder(
             shape=[None, IMG_WIDTH, IMG_HEIGHT, 3], dtype=tf.float32, name="inputs2"
         )
-        self.labels = tf.placeholder(shape=[None], dtype=tf.int64, name="labels")
+        self.labels = tf.placeholder(shape=[None], dtype=tf.float32, name="labels")
         self.is_training = tf.placeholder(tf.bool, name="is_training")
 
     def _conv_layer(self, input, k_size, output_channels, name, reuse):
@@ -132,7 +140,7 @@ class SiameseNet:
         )
 
     def _create_loss(self, images1, images2, labels):
-        distance = tf.reduce_sum(tf.square(images1 - images2), 1)
+        distance = tf.reduce_sum(tf.square(images1 - images2 + NUM_STABILITY), 1)
         distance_sqrt = tf.sqrt(distance)
 
         loss = (
@@ -146,5 +154,11 @@ class SiameseNet:
         optimizer = tf.train.AdamOptimizer(LR)
         self.train_step = optimizer.minimize(self.loss_fun)
 
-    def _inference(self, flat_image1, flat_image2):
+    def inference(self, flat_image1, flat_image2):
         return tf.norm(flat_image1 - flat_image2, ord="euclidean")
+
+
+    def restore_from_checkpoint(self, sess: tf.Session, path_to_checkpoint_dir: str):
+        loader = tf.train.Saver()
+        loader.restore(sess, path_to_checkpoint_dir)
+        log.info("Model restored from checkpoint")
