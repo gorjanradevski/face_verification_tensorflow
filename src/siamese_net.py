@@ -23,24 +23,24 @@ class SiameseNet:
 
         # Building the first network
         net1_conv_layer1 = self._conv_layer(
-            self.input_images1, [5, 5], 32, "conv_layer1", reuse=False
+            self.input_images1, [5, 5], 32, "conv_layer1", reuse=None
         )
         net1_max_pooled1 = self._maxpool2d_layer(net1_conv_layer1)
         net1_conv_layer2 = self._conv_layer(
-            net1_max_pooled1, [5, 5], 64, "conv_layer2", reuse=False
+            net1_max_pooled1, [5, 5], 64, "conv_layer2", reuse=None
         )
         net1_max_pooled2 = self._maxpool2d_layer(net1_conv_layer2)
         net1_conv_layer3 = self._conv_layer(
-            net1_max_pooled2, [5, 5], 128, "conv_layer3", reuse=False
+            net1_max_pooled2, [5, 5], 128, "conv_layer3", reuse=None
         )
         net1_max_pooled3 = self._maxpool2d_layer(net1_conv_layer3)
 
         net1_dense1 = self._dense_layer(
-            net1_max_pooled3, 256, name="dense1", reuse=False, activation=tf.nn.relu
+            net1_max_pooled3, 256, name="dense1", reuse=None, activation=tf.nn.relu
         )
         net1_dropped = self._create_dropout(net1_dense1, self.is_training)
         net1_logits = self._dense_layer(
-            net1_dropped, 256, name="logits", activation=tf.nn.relu, reuse=False
+            net1_dropped, 256, name="logits", activation=tf.nn.relu, reuse=None
         )
 
         # Building the second network
