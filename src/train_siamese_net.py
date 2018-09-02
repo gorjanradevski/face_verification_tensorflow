@@ -26,7 +26,18 @@ def train_model(pairs_train_path: str, pairs_val_path: str, save_model_path: str
     """
     train_image_paths = load_all_image_paths_siamese(pairs_train_path)
     val_image_paths = load_all_image_paths_siamese(pairs_val_path)
-    log.info("All image paths loaded...")
+
+    # Artificially modifying the dataset for better results
+    train_add_from_val_pos = val_image_paths[:400]
+    train_add_from_val_neg = val_image_paths[600:]
+
+    train_image_paths = (
+        train_image_paths + train_add_from_val_pos + train_add_from_val_neg
+    )
+    val_image_paths = val_image_paths[400:600]
+
+    log.info(f"{len(train_image_paths)} images belonging to the train set...")
+    log.info(f"{len(val_image_paths)} images belonging to the validation set...")
     model = SiameseNet()
     log.info("Model built...")
     BEST_VAL_LOSS = sys.maxsize
@@ -35,8 +46,8 @@ def train_model(pairs_train_path: str, pairs_val_path: str, save_model_path: str
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         for e in range(EPOCHS):
+            train_loss_epoch = 0.0
             validation_loss_epoch = 0.0
-
             random.shuffle(train_image_paths)
             full_epoch_train = trange(0, len(train_image_paths), BATCH_SIZE)
 
@@ -54,8 +65,11 @@ def train_model(pairs_train_path: str, pairs_val_path: str, save_model_path: str
                 _, train_loss = sess.run(
                     [model.train_step, model.loss_fun], feed_dict_train
                 )
+
+                train_loss_epoch += train_loss
+
                 full_epoch_train.set_description(
-                    f"Current train step loss: %g" % train_loss
+                    f"Loss for epoch {e+1}: %g" % train_loss_epoch
                 )
 
             log.info("Evaluating model on the validation set")
@@ -72,11 +86,12 @@ def train_model(pairs_train_path: str, pairs_val_path: str, save_model_path: str
                 val_loss = sess.run(model.loss_fun, feed_dict_val)
                 validation_loss_epoch += val_loss
 
+            print(f"The validation loss for epoch {e+1} is: {validation_loss_epoch}")
+
             if validation_loss_epoch < BEST_VAL_LOSS:
-                print(
-                    f"The validation loss for epoch {e+1} is: {validation_loss_epoch}"
-                )
-                print("Found new best! Saving model...")
+                print("===============================================")
+                print(f"Found new best! Saving model on epoch {e+1}...")
+                print("===============================================")
                 saver.save(sess, f"{save_model_path}")
                 BEST_VAL_LOSS = validation_loss_epoch
 

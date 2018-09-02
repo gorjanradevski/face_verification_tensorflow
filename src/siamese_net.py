@@ -30,17 +30,12 @@ class SiameseNet:
             net1_max_pooled1, [5, 5], 64, "conv_layer2", reuse=None
         )
         net1_max_pooled2 = self._maxpool2d_layer(net1_conv_layer2)
-        net1_conv_layer3 = self._conv_layer(
-            net1_max_pooled2, [5, 5], 128, "conv_layer3", reuse=None
-        )
-        net1_max_pooled3 = self._maxpool2d_layer(net1_conv_layer3)
-
         net1_dense1 = self._dense_layer(
-            net1_max_pooled3, 256, name="dense1", reuse=None, activation=tf.nn.relu
+            net1_max_pooled2, 128, name="dense1", reuse=None, activation=tf.nn.relu
         )
         net1_dropped = self._create_dropout(net1_dense1, self.is_training)
         net1_logits = self._dense_layer(
-            net1_dropped, 256, name="logits", activation=tf.nn.relu, reuse=None
+            net1_dropped, 128, name="logits", activation=tf.nn.relu, reuse=None
         )
 
         # Building the second network
@@ -52,17 +47,12 @@ class SiameseNet:
             net2_max_pooled1, [5, 5], 64, "conv_layer2", reuse=True
         )
         net2_max_pooled2 = self._maxpool2d_layer(net2_conv_layer2)
-        net2_conv_layer3 = self._conv_layer(
-            net2_max_pooled2, [5, 5], 128, "conv_layer3", reuse=True
-        )
-        net2_max_pooled3 = self._maxpool2d_layer(net2_conv_layer3)
-
         net2_dense1 = self._dense_layer(
-            net2_max_pooled3, 256, name="dense1", reuse=True, activation=tf.nn.relu
+            net2_max_pooled2, 128, name="dense1", reuse=True, activation=tf.nn.relu
         )
         net2_dropped = self._create_dropout(net2_dense1, self.is_training)
         net2_logits = self._dense_layer(
-            net2_dropped, 256, name="logits", activation=tf.nn.relu, reuse=True
+            net2_dropped, 128, name="logits", activation=tf.nn.relu, reuse=True
         )
 
         # Preparing for the loss / flattening the output
