@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger()
 
 
-def train_model(pairs_train_path: str, pairs_val_path: str, save_model_dir: str):
+def train_model(pairs_train_path: str, pairs_val_path: str, save_model_path: str):
     """
 
     Args:
@@ -77,7 +77,7 @@ def train_model(pairs_train_path: str, pairs_val_path: str, save_model_dir: str)
                     f"The validation loss for epoch {e+1} is: {validation_loss_epoch}"
                 )
                 print("Found new best! Saving model...")
-                saver.save(sess, f"{save_model_dir}/siamese_net2")
+                saver.save(sess, f"{save_model_path}")
                 BEST_VAL_LOSS = validation_loss_epoch
 
 
@@ -99,11 +99,11 @@ if __name__ == "__main__":
         default="../data/val_data_siamese/pairsDevTest.txt",
     )
     parser.add_argument(
-        "--save_model_dir",
+        "--save_model_path",
         type=str,
         help="Location where the model should be saved",
-        default="../logs",
+        default="../logs/siamese_net2",
     )
 
     args = parser.parse_args()
-    train_model(args.train_pairs_path, args.val_pairs_path, args.save_model_dir)
+    train_model(args.train_pairs_path, args.val_pairs_path, args.save_model_path)
