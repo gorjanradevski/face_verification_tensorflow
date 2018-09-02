@@ -47,7 +47,7 @@ def train_model(train_data_dir: str, val_data_dir: str, save_model_dir: str):
                 feed_dict_train = {
                     model.input_images: train_image_batch,
                     model.labels: train_label_batch,
-                    model.dropout_prob: 0.5,
+                    model.is_training: True,
                 }
                 _, train_loss = sess.run(
                     [model.train_step, model.loss_fun], feed_dict_train
@@ -63,7 +63,7 @@ def train_model(train_data_dir: str, val_data_dir: str, save_model_dir: str):
                 feed_dict_val = {
                     model.input_images: val_image_batch,
                     model.labels: val_label_batch,
-                    model.dropout_prob: 1.0,
+                    model.is_training: False,
                 }
                 val_loss = sess.run(model.loss_fun, feed_dict_val)
                 validation_loss_epoch += val_loss

@@ -1,7 +1,13 @@
 import tensorflow as tf
 import os
 import logging
-from utils.global_config import IMG_WIDTH, IMG_HEIGHT, LR, CONTRASTIVE_MARGIN, NUM_STABILITY
+from utils.global_config import (
+    IMG_WIDTH,
+    IMG_HEIGHT,
+    LR,
+    CONTRASTIVE_MARGIN,
+    NUM_STABILITY,
+)
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 logging.basicConfig(level=logging.INFO)
@@ -64,9 +70,7 @@ class SiameseNet:
         net2_flatten = tf.layers.flatten(net2_logits)
         self._create_loss(net1_flatten, net2_flatten, self.labels)
         self._create_optimizer()
-
-        # Performing inference
-        self.inference(net1_flatten, net2_flatten)
+        self._create_inference(net1_flatten, net2_flatten)
 
     def _create_placeholders(self):
         self.input_images1 = tf.placeholder(
@@ -140,8 +144,8 @@ class SiameseNet:
         )
 
     def _create_loss(self, images1, images2, labels):
-        distance = tf.reduce_sum(tf.square(images1 - images2 + NUM_STABILITY), 1)
-        distance_sqrt = tf.sqrt(distance)
+        distance = tf.reduce_sum(tf.square(images1 - images2), 1)
+        distance_sqrt = tf.sqrt(distance + NUM_STABILITY)
 
         loss = (
             labels * tf.square(tf.maximum(0., CONTRASTIVE_MARGIN - distance))
@@ -154,11 +158,10 @@ class SiameseNet:
         optimizer = tf.train.AdamOptimizer(LR)
         self.train_step = optimizer.minimize(self.loss_fun)
 
-    def inference(self, flat_image1, flat_image2):
-        return tf.norm(flat_image1 - flat_image2, ord="euclidean")
+    def _create_inference(self, flat_image1, flat_image2):
+        self.prediction = tf.norm(flat_image1 - flat_image2, ord="euclidean")
 
-
-    def restore_from_checkpoint(self, sess: tf.Session, path_to_checkpoint_dir: str):
-        loader = tf.train.Saver()
+    def restore_from_checkpoint(
+        self, sess: tf.Session, loader: tf.train.Saver, path_to_checkpoint_dir: str
+    ):
         loader.restore(sess, path_to_checkpoint_dir)
-        log.info("Model restored from checkpoint")

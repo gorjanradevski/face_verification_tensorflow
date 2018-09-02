@@ -6,7 +6,7 @@ import argparse
 from time import sleep
 
 from utils.global_config import IMG_HEIGHT, IMG_WIDTH
-from siamese_net import SiameseNet
+from conv_net import ConvNet
 
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
@@ -16,10 +16,7 @@ def perform_inference_on_camera_input(args):
 
     cap = cv2.VideoCapture(0)
     cap.set(cv2.CAP_PROP_FPS, 1)
-    anchor_image = np.expand_dims(
-        cv2.resize(cv2.imread(args.anchor_image_path), (IMG_HEIGHT, IMG_WIDTH)), axis=0
-    )
-    model = SiameseNet()
+    model = ConvNet()
     loader = tf.train.Saver()
     with tf.Session() as sess:
         # Restore variables from disk.
@@ -33,8 +30,7 @@ def perform_inference_on_camera_input(args):
             )
 
             feed_dict_inference = {
-                model.input_images1: input_image,
-                model.input_images2: anchor_image,
+                model.input_images: input_image,
                 model.is_training: False,
             }
             predictions = sess.run(model.prediction, feed_dict_inference)
@@ -53,20 +49,13 @@ def perform_inference_on_camera_input(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="The script takes a path to the"
-        "checkpoint and the anchor image"
+        description="Only the path to the checkpoint is required"
     )
     parser.add_argument(
         "--checkpoint_path",
         type=str,
         help="Location the model checkpoint is",
-        default="../logs/siamese_net",
-    )
-    parser.add_argument(
-        "--anchor_image_path",
-        type=str,
-        help="Location where the validation pairs are",
-        default="../data/anchor_image.jpg",
+        default="../logs/conv_net",
     )
 
     args = parser.parse_args()
