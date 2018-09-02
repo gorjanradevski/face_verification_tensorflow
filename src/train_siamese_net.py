@@ -72,10 +72,12 @@ def train_model(pairs_train_path: str, pairs_val_path: str, save_model_dir: str)
                 val_loss = sess.run(model.loss_fun, feed_dict_val)
                 validation_loss_epoch += val_loss
 
-            print(f"The validation loss for epoch {e+1} is: {validation_loss_epoch}")
             if validation_loss_epoch < BEST_VAL_LOSS:
+                print(
+                    f"The validation loss for epoch {e+1} is: {validation_loss_epoch}"
+                )
                 print("Found new best! Saving model...")
-                saver.save(sess, f"{save_model_dir}/siamese_net")
+                saver.save(sess, f"{save_model_dir}/siamese_net2")
                 BEST_VAL_LOSS = validation_loss_epoch
 
 
