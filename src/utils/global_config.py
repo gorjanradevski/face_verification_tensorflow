@@ -1,4 +1,4 @@
-PATH_TO_DATASET_SIAMESE = "/Users/gorjanradevski/PycharmProjects/face_verification_tensorflow/data/train_data_siamese/lfw_funneled/"
+PATH_TO_DATASET_SIAMESE = "/Users/gorjanradevski/PycharmProjects/face_verification_tensorflow/data/lfw_funneled/"
 BATCH_SIZE = 64
 IMG_WIDTH = 150
 IMG_HEIGHT = 150

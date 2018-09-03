@@ -10,7 +10,8 @@ class ConvNet:
         self._create_placeholders()
         conv1 = self._conv2dmaxpool(self.input_images, 3, 32)
         conv2 = self._conv2dmaxpool(conv1, 32, 64)
-        fully1 = self._fullyconnected(conv2, 32)
+        conv3 = self._conv2dmaxpool(conv2, 64, 128)
+        fully1 = self._fullyconnected(conv3, 128)
         droped_output = self._create_dropout(fully1, self.is_training)
         logits = self._create_logits(droped_output)
         self._create_loss(logits, self.labels)
@@ -21,7 +22,7 @@ class ConvNet:
         self.input_images = tf.placeholder(
             shape=[None, IMG_WIDTH, IMG_HEIGHT, 3], dtype=tf.float32, name="inputs"
         )
-        self.labels = tf.placeholder(shape=[None], dtype=tf.int64, name="labels")
+        self.labels = tf.placeholder(shape=[None, 1], dtype=tf.float32, name="labels")
         self.is_training = tf.placeholder(tf.bool, name="is_training")
 
     def _conv2dmaxpool(self, X, in_channels, out_channels):
@@ -85,26 +86,25 @@ class ConvNet:
     def _create_logits(self, input):
         input_size = int(input.get_shape()[1])
 
-        W = tf.Variable(tf.random_uniform([input_size, 2], -1.0, 1.0), dtype=tf.float32)
-        b = tf.Variable(tf.random_uniform([2], -1.0, 1.0), dtype=tf.float32)
+        W = tf.Variable(tf.random_uniform([input_size, 1], -1.0, 1.0), dtype=tf.float32)
+        b = tf.Variable(tf.random_uniform([1], -1.0, 1.0), dtype=tf.float32)
 
         logits = tf.matmul(input, W) + b
 
         return logits
 
     def _create_loss(self, logits, labels):
-        one_hot_labels = tf.one_hot(labels, depth=2)
-        cross_entropy = tf.nn.softmax_cross_entropy_with_logits_v2(
-            labels=one_hot_labels, logits=logits
+        sigmoid_cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(
+            labels=labels, logits=logits
         )
-        self.loss_fun = tf.reduce_mean(cross_entropy)
+        self.loss_fun = tf.reduce_mean(sigmoid_cross_entropy)
 
     def _create_optimizer(self):
         optimizer = tf.train.AdamOptimizer(LR)
         self.train_step = optimizer.minimize(self.loss_fun)
 
     def _create_inference(self, logits):
-        self.prediction = tf.nn.softmax(logits, 1, name="softmax")
+        self.prediction = tf.sigmoid(logits)
 
     def restore_from_checkpoint(
         self, sess: tf.Session, loader: tf.train.Saver, path_to_checkpoint_dir: str

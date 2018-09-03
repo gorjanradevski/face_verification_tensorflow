@@ -125,7 +125,7 @@ def load_batch_of_data_convnet(image_paths: List[str]) -> Tuple[np.ndarray, np.n
     """
     size_of_batch = len(image_paths)
     batch_images = np.zeros((size_of_batch, IMG_WIDTH, IMG_HEIGHT, 3))
-    batch_labels = np.zeros((size_of_batch))
+    batch_labels = np.zeros((size_of_batch, 1))
     for index, path in enumerate(image_paths):
         batch_images[index] = cv2.resize(cv2.imread(path), (IMG_HEIGHT, IMG_WIDTH))
         if LABEL in path:

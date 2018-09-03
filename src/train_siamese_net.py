@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger()
 
 
-def train_model(pairs_train_path: str, pairs_val_path: str, save_model_path: str):
+def train_model(pairs_dataset: str, save_model_path: str):
     """
 
     Args:
@@ -24,17 +24,10 @@ def train_model(pairs_train_path: str, pairs_val_path: str, save_model_path: str
     Returns:
 
     """
-    train_image_paths = load_all_image_paths_siamese(pairs_train_path)
-    val_image_paths = load_all_image_paths_siamese(pairs_val_path)
-
+    dataset = load_all_image_paths_siamese(pairs_dataset)
     # Artificially modifying the dataset for better results
-    train_add_from_val_pos = val_image_paths[:400]
-    train_add_from_val_neg = val_image_paths[600:]
-
-    train_image_paths = (
-        train_image_paths + train_add_from_val_pos + train_add_from_val_neg
-    )
-    val_image_paths = val_image_paths[400:600]
+    train_image_paths = dataset[:5400]
+    val_image_paths = dataset[5400:]
 
     log.info(f"{len(train_image_paths)} images belonging to the train set...")
     log.info(f"{len(val_image_paths)} images belonging to the validation set...")
@@ -102,17 +95,12 @@ if __name__ == "__main__":
         "train pairs are as well as where the validation pairs are"
     )
     parser.add_argument(
-        "--train_pairs_path",
+        "--pairs_dataset",
         type=str,
-        help="Location the train paths are",
-        default="../data/train_data_siamese/pairsDevTrain.txt",
+        help="Location the training-validations are",
+        default="../data/pairs.txt",
     )
-    parser.add_argument(
-        "--val_pairs_path",
-        type=str,
-        help="Location where the validation pairs are",
-        default="../data/val_data_siamese/pairsDevTest.txt",
-    )
+
     parser.add_argument(
         "--save_model_path",
         type=str,
@@ -121,4 +109,4 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    train_model(args.train_pairs_path, args.val_pairs_path, args.save_model_path)
+    train_model(args.pairs_dataset, args.save_model_path)

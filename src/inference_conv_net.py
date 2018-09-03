@@ -26,25 +26,28 @@ def perform_inference_on_camera_input(args):
         while True:
             # Capture frame-by-frame
             ret, frame = cap.read()
-            faces = haar_face_cascade.detectMultiScale(frame, scaleFactor=1.1, minNeighbors=5)
-            (x, y, w, h) = faces[0]
-            croped_img = frame[y:y + h, x:x + w]
-            if croped_img.shape[0] > 0 and croped_img.shape[1] > 0:
-                input_image = np.expand_dims(
-                    cv2.resize(croped_img, (IMG_HEIGHT, IMG_WIDTH)), axis=0
-                )
-                feed_dict_inference = {
-                    model.input_images: input_image,
-                    model.is_training: False,
-                }
-                predictions = sess.run(model.prediction, feed_dict_inference)
-                print(predictions)
-                cv2.imshow("Checking images", croped_img)
+            faces = haar_face_cascade.detectMultiScale(
+                frame, scaleFactor=1.1, minNeighbors=5
+            )
+            if len(faces) == 1 and ret == True:
+                (x, y, w, h) = faces[0]
+                croped_img = frame[y : y + h, x : x + w]
+                if croped_img.shape[0] > 0 and croped_img.shape[1] > 0:
+                    input_image = np.expand_dims(
+                        cv2.resize(croped_img, (IMG_HEIGHT, IMG_WIDTH)), axis=0
+                    )
+                    feed_dict_inference = {
+                        model.input_images: input_image,
+                        model.is_training: False,
+                    }
+                    predictions = sess.run(model.prediction, feed_dict_inference)
+                    print(predictions)
+                    cv2.imshow("Checking images", croped_img)
 
-                if cv2.waitKey(1) & 0xFF == ord("q"):
-                    break
+                    if cv2.waitKey(1) & 0xFF == ord("q"):
+                        break
 
-                sleep(1)
+                    sleep(1)
 
     # When everything done, release the capture
     cap.release()

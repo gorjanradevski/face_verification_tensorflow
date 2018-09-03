@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger()
 
 
-def train_model(train_data_dir: str, val_data_dir: str, save_model_dir: str):
+def train_model(train_data_dir: str, val_data_dir: str, save_model_path: str):
     """
 
     Args:
@@ -26,7 +26,8 @@ def train_model(train_data_dir: str, val_data_dir: str, save_model_dir: str):
     """
     all_train_image_paths = load_all_image_paths_convnet(train_data_dir)
     all_val_image_paths = load_all_image_paths_convnet(val_data_dir)
-    log.info("All image paths loaded...")
+    log.info(f"{len(all_train_image_paths)} images belonging to the train set...")
+    log.info(f"{len(all_val_image_paths)} images belonging to the validation set...")
     model = ConvNet()
     log.info("Model built...")
     BEST_VAL_LOSS = sys.maxsize
@@ -35,8 +36,8 @@ def train_model(train_data_dir: str, val_data_dir: str, save_model_dir: str):
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         for e in range(EPOCHS):
+            train_loss_epoch = 0.0
             validation_loss_epoch = 0.0
-
             random.shuffle(all_train_image_paths)
             full_epoch_train = trange(0, len(all_train_image_paths), BATCH_SIZE)
 
@@ -52,8 +53,9 @@ def train_model(train_data_dir: str, val_data_dir: str, save_model_dir: str):
                 _, train_loss = sess.run(
                     [model.train_step, model.loss_fun], feed_dict_train
                 )
+                train_loss_epoch += train_loss
                 full_epoch_train.set_description(
-                    f"Current train step loss: %g" % train_loss
+                    f"Loss for epoch {e+1}: %g" % train_loss_epoch
                 )
 
             for step in range(0, len(all_val_image_paths), BATCH_SIZE):
@@ -70,8 +72,10 @@ def train_model(train_data_dir: str, val_data_dir: str, save_model_dir: str):
 
             print(f"The validation loss for epoch {e+1} is: {validation_loss_epoch}")
             if validation_loss_epoch < BEST_VAL_LOSS:
-                print("Found new best! Saving model")
-                saver.save(sess, f"{save_model_dir}/conv_net")
+                print("===============================================")
+                print(f"Found new best! Saving model on epoch {e+1}...")
+                print("===============================================")
+                saver.save(sess, f"{save_model_path}")
                 BEST_VAL_LOSS = validation_loss_epoch
 
 
@@ -93,11 +97,11 @@ if __name__ == "__main__":
         default="../data/val_data_conv",
     )
     parser.add_argument(
-        "--save_model_dir",
+        "--save_model_path",
         type=str,
         help="Location where the model should be saved",
-        default="../logs",
+        default="../logs/conv_net",
     )
 
     args = parser.parse_args()
-    train_model(args.train_data_dir, args.val_data_dir, args.save_model_dir)
+    train_model(args.train_data_dir, args.val_data_dir, args.save_model_path)

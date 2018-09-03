@@ -13,12 +13,13 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 
 def perform_inference_on_camera_input(args):
-
+    # 85 -> 235 WIDTH
+    # 45 -> 195 HEIGHT
     cap = cv2.VideoCapture(0)
     cap.set(cv2.CAP_PROP_FPS, 1)
-    anchor_image = np.expand_dims(
-        cv2.resize(cv2.imread(args.anchor_image_path), (IMG_HEIGHT, IMG_WIDTH)), axis=0
-    )
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 150)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 150)
+    anchor_image = np.expand_dims(cv2.imread(args.anchor_image_path), axis=0)
     model = SiameseNet()
     loader = tf.train.Saver()
     with tf.Session() as sess:
@@ -28,9 +29,8 @@ def perform_inference_on_camera_input(args):
         while True:
             # Capture frame-by-frame
             ret, frame = cap.read()
-            input_image = np.expand_dims(
-                cv2.resize(frame, (IMG_HEIGHT, IMG_WIDTH)), axis=0
-            )
+            cropped_frame = frame[45:195,85:235]
+            input_image = np.expand_dims(cropped_frame, axis=0)
 
             feed_dict_inference = {
                 model.input_images1: input_image,
@@ -39,7 +39,7 @@ def perform_inference_on_camera_input(args):
             }
             predictions = sess.run(model.prediction, feed_dict_inference)
             print(predictions)
-            cv2.imshow("Checking images", frame)
+            cv2.imshow("Checking images", cropped_frame)
 
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
@@ -53,8 +53,7 @@ def perform_inference_on_camera_input(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="The script takes a path to the"
-        "checkpoint and the anchor image"
+        description="The script takes a path to the" "checkpoint and the anchor image"
     )
     parser.add_argument(
         "--checkpoint_path",
